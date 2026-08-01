@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>¡Feliz Cumpleaños! ✨</title>
+    <style>
+        /* RESET & BASE STYLES */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: #060713;
+            color: #f1f5f9;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* TELA DE BLOQUEIO / LOCKSCREEN */
+        #lock-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #060713;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            transition: opacity 1.2s ease, visibility 1.2s ease;
+        }
+
+        .door-container {
+            position: relative;
+            width: 160px;
+            height: 250px;
+            margin: 15px auto;
+            perspective: 1000px;
+        }
+
+        .door-frame {
+            width: 100%;
+            height: 100%;
+            border: 8px solid #c5a880;
+            border-radius: 4px;
+            background: #000;
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.3), inset 0 0 15px rgba(0,0,0,0.9);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .door {
+            width: 100%;
+            height: 100%;
+            background: #f4eee6;
+            border: 3px solid #7c5c3e;
+            transform-origin: left;
+            transition: transform 1.6s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: center;
+            padding: 20px 10px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            box-shadow: inset 0 0 12px rgba(0,0,0,0.2);
+        }
+
+        .door-panel {
+            width: 85%;
+            height: 42%;
+            border: 3px solid #c5a880;
+            background: #fffdfa;
+            box-shadow: inset 2px 2px 6px rgba(0,0,0,0.12);
+            border-radius: 2px;
+        }
+
+        .door-knob {
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle, #facc15 40%, #b45309 100%);
+            border: 1px solid #78350f;
+            border-radius: 50%;
+            position: absolute;
+            left: 10px;
+            top: 52%;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.4);
+        }
+
+        .tunnel-effect {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            top: 50%;
+            left: 50%;
+            margin-top: -70px;
+            margin-left: -70px;
+            background: conic-gradient(
+                #1d4ed8 0deg, 
+                #3b82f6 40deg, 
+                #a855f7 90deg, 
+                #ec4899 150deg, 
+                #1e1b4b 210deg, 
+                #38bdf8 280deg, 
+                #1d4ed8 360deg
+            );
+            border-radius: 50%;
+            z-index: 1;
+            opacity: 0;
+            transform: scale(0.1);
+            transition: transform 2s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.6s ease;
+            filter: blur(2px);
+            animation: spinTunnel 4s linear infinite;
+        }
+
+        @keyframes spinTunnel {
+            0% { transform: scale(0.1) rotate(0deg); }
+            100% { transform: scale(0.1) rotate(360deg); }
+        }
+
+        .door-open .door {
+            transform: rotateY(-115deg);
+        }
+
+        .door-open .tunnel-effect {
+            opacity: 1;
+            animation: spinAndGrow 2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        @keyframes spinAndGrow {
+            0% { transform: scale(0.1) rotate(0deg); }
+            100% { transform: scale(22) rotate(720deg); }
+        }
+
+        .password-box {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .hint-text {
+            color: #fde047;
+            font-size: 0.9rem;
+            font-family: 'Segoe UI', sans-serif;
+            font-style: italic;
+            background: rgba(250, 204, 21, 0.12);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px dashed rgba(250, 204, 21, 0.5);
+        }
+
+        .password-input {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid #facc15;
+            border-radius: 25px;
+            padding: 10px 20px;
+            color: #fde047;
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 4px;
+            outline: none;
+            width: 160px;
+        }
+
+        .btn-unlock {
+            background: #facc15;
+            color: #0d1117;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);
+        }
+
+        .forgot-link {
+            color: #38bdf8;
+            font-size: 0.82rem;
+            font-family: 'Segoe UI', sans-serif;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .error-msg {
+            color: #ef4444;
+            font-size: 0.85rem;
+            min-height: 20px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .container {
+            position: relative;
+            z-index: 3;
+            width: 100%;
+            max-width: 600px;
+            padding: 30px 15px 50px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #facc15 0%, #38bdf8 50%, #c084fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(250, 204, 21, 0.35);
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .subtitle-container {
+            min-height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0 10px;
+        }
+
+        .typewriter {
+            font-size: 0.95rem;
+            color: #fde047;
+            border-right: 2px solid #facc15;
+            white-space: normal;
+            letter-spacing: 0.5px;
+            animation: blinkCursor 0.75s step-end infinite;
+            font-style: italic;
+            font-family: 'Segoe UI', sans-serif;
+            text-shadow: 0 0 8px rgba(250, 204, 21, 0.5);
+            text-align: center;
+        }
+
+        .card {
+            background: rgba(10, 15, 30, 0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(250, 204, 21, 0.35);
+            border-radius: 20px;
+            padding: 25px 18px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8);
+            margin-bottom: 25px;
+            width: 100%;
+            position: relative;
+        }
+
+        .card p {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 0.98rem;
+            line-height: 1.65;
+            color: #f1f5f9;
+            margin-bottom: 16px;
+            font-weight: 300;
+            text-align: left;
+        }
+
+        .card p:last-child {
+            margin-bottom: 0;
+        }
+
+        .interactive-section {
+            margin-top: 25px;
+            text-align: center;
+            border-top: 1px dashed rgba(250, 204, 21, 0.3);
+            padding-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .question-title {
+            font-size: 1.05rem;
+            color: #facc15;
+            font-weight: 600;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .character-container {
+            width: 120px;
+            height: 130px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .character-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .arm-no {
+            transform-origin: 75px 80px;
+            transition: transform 0.1s ease;
+        }
+
+        .head-group {
+            transform-origin: 50px 48px;
+            transition: transform 0.1s ease;
+        }
+
+        .waving-no .arm-no {
+            animation: waveArm 0.6s ease-in-out;
+        }
+
+        .waving-no .head-group {
+            animation: shakeHead 0.6s ease-in-out;
+        }
+
+        @keyframes waveArm {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-30deg); }
+            50% { transform: rotate(25deg); }
+            75% { transform: rotate(-25deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        @keyframes shakeHead {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-14deg); }
+            50% { transform: rotate(14deg); }
+            75% { transform: rotate(-10deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .btn-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            min-height: 60px;
+            width: 100%;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .btn-action {
+            padding: 12px 28px;
+            font-size: 1rem;
+            font-weight: bold;
+            font-family: 'Segoe UI', sans-serif;
+            border-radius: 25px;
+            cursor: pointer;
+            border: 2px solid #facc15;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            touch-action: manipulation;
+            transition: transform 0.2s ease, padding 0.2s ease, font-size 0.2s ease;
+        }
+
+        .btn-sim {
+            background-color: #4b0082;
+            color: #facc15;
+        }
+
+        .btn-nao {
+            background-color: #1e293b;
+            color: #94a3b8;
+            border-color: #475569;
+        }
+
+        .photo-card {
+            background: rgba(10, 15, 30, 0.85);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(250, 204, 21, 0.35);
+            border-radius: 20px;
+            padding: 30px 18px 20px 18px;
+            margin-bottom: 25px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+        }
+
+        .polaroid-gallery {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+        .polaroid {
+            background: #ffffff;
+            padding: 8px 8px 35px 8px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.7);
+            border-radius: 2px;
+            width: 140px;
+            transition: transform 0.3s ease;
+        }
+
+        .polaroid img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 1px;
+        }
+
+        .polaroid-left {
+            transform: rotate(-6deg);
+        }
+
+        .polaroid-right {
+            transform: rotate(4deg);
+            margin-top: 15px;
+        }
+
+        .photo-card p {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #f1f5f9;
+            text-align: center;
+            font-weight: 300;
+        }
+
+        .video-section {
+            width: 100%;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .btn-video {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 14px 20px;
+            font-size: 1rem;
+            font-weight: 650;
+            font-family: 'Segoe UI', sans-serif;
+            color: #0d1117;
+            background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+            border: 1px solid rgba(250, 204, 21, 0.8);
+            border-radius: 30px;
+            text-decoration: none;
+            box-shadow: 0 8px 20px rgba(250, 204, 21, 0.3);
+        }
+
+        .spotify-section {
+            width: 100%;
+            margin-bottom: 25px;
+        }
+
+        .spotify-card {
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(250, 204, 21, 0.3);
+            padding: 4px;
+        }
+
+        .spotify-card iframe {
+            border-radius: 12px;
+            width: 100%;
+            height: 352px;
+            border: none;
+            display: block;
+        }
+
+        footer {
+            position: relative;
+            z-index: 3;
+            width: 100%;
+            padding: 18px 15px;
+            text-align: center;
+            background: rgba(6, 7, 19, 0.95);
+            border-top: 1px solid rgba(250, 204, 21, 0.2);
+            margin-top: auto;
+        }
+
+        footer p {
+            font-size: 0.88rem;
+            color: #94a3b8;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .easter-key {
+            cursor: pointer;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+
+        .easter-key:hover {
+            transform: scale(1.3) rotate(15deg);
+        }
+
+        /* MODAL EASTER EGG */
+        .easter-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(6, 7, 19, 0.92);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .easter-card {
+            background: #0f172a;
+            border: 2px solid #facc15;
+            border-radius: 20px;
+            padding: 25px;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(250, 204, 21, 0.4);
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .easter-card h3 {
+            color: #facc15;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .easter-card p {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #f1f5f9;
+            margin-bottom: 20px;
+        }
+
+        .btn-easter-send {
+            background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+            color: #0d1117;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(250, 204, 21, 0.3);
+        }
+
+        @keyframes blinkCursor {
+            from, to { border-color: transparent; }
+            50% { border-color: #facc15; }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+    <audio id="musicaFundo" loop preload="auto">
+        <source src="exploration.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- TELA DE BLOQUEIO -->
+    <div id="lock-screen">
+        <h2 style="color: #facc15; font-size: 1.3rem; margin-bottom: 5px;">La Puerta Secreta 🗝️</h2>
+        <p style="color: #94a3b8; font-size: 0.85rem; font-family: 'Segoe UI', sans-serif;">Ingresa la clave para abrir el portal...</p>
+
+        <div class="door-container" id="doorContainer">
+            <div class="door-frame">
+                <div class="tunnel-effect"></div>
+                <div class="door">
+                    <div class="door-panel"></div>
+                    <div class="door-panel"></div>
+                    <div class="door-knob"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="password-box">
+            <div class="hint-text">💡 Pista: Es la contraseña de mi celular 📱🗝️</div>
+            <input type="password" id="passInput" class="password-input" maxlength="4" placeholder="••••" pattern="[0-9]*" inputmode="numeric">
+            <button class="btn-unlock" onclick="verificarSenha()">Desbloquear 🗝️</button>
+            <span class="forgot-link" onclick="esqueciSenha()">¿Olvidaste la clave? 🗝️</span>
+            <div class="error-msg" id="errorMsg"></div>
+        </div>
+    </div>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="container">
+        <header>
+            <h1>¡Feliz Cumpleaños! ✨</h1>
+            <div class="subtitle-container">
+                <span id="typewriter" class="typewriter"></span>
+            </div>
+        </header>
+
+        <!-- CARTÃO PRINCIPAL -->
+        <section class="card">
+            <p>¡Hola! ✨</p>
+            <p>Conocerte ha sido de las mejores cosas que han pasado. Imposible olvidar la primera vez que nos vimos y cómo desde entonces se fue dando esta gran amistad.</p>
+            <p>Hoy en tu cumpleaños quiero desearte lo mejor del mundo. Gracias por las risas, por tu buena vibra, por la compañía y por estar siempre ahí.</p>
+            <p>Espero que este nuevo año de vida venga cargado de muchísima alegría, éxito, salud y momentos increíbles.</p>
+            <p>Sabes que cuentas conmigo para lo que sea, siempre para apoyarte y valorar la bonita amistad que tenemos.</p>
+            <p>Hice este pequeño detalle con mucho cariño para ti, espero que te guste mucho. 🌻</p>
+            <p>Y por cierto... ¿te acuerdas cuando te invité a salir y dijiste "en mi próximo cumpleaños"? Bueno, ¡el día llegó! 😂 Espero que celebres al máximo y aceptes la invitación para ir por algo rico. Si dices que sí, dale al botón de abajo (o al "NO", a ver si puedes).</p>
+
+            <div class="interactive-section">
+                <p class="question-title">¿Aceptas la invitación a celebrar hoy? 🗝️✨</p>
+                
+                <div class="character-container" id="character">
+                    <svg class="character-svg" viewBox="0 0 100 120">
+                        <path d="M 25,82 Q 50,70 75,82 L 80,118 L 20,118 Z" fill="#eab308" />
+                        <path d="M 50,75 L 50,118" stroke="#ca8a04" stroke-width="2" />
+                        <path d="M 45,78 Q 43,88 40,92" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" />
+                        <path d="M 55,78 Q 57,88 60,92" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" />
+
+                        <path d="M 30,80 L 72,110" stroke="#7f1d1d" stroke-width="4" stroke-linecap="round" />
+                        <rect x="68" y="100" width="14" height="12" rx="3" fill="#991b1b" />
+
+                        <path d="M 25,84 Q 15,92 18,108" stroke="#ca8a04" stroke-width="6" stroke-linecap="round" fill="none" />
+                        
+                        <g class="arm-no">
+                            <path d="M 75,84 Q 88,72 82,50" stroke="#ca8a04" stroke-width="6" stroke-linecap="round" fill="none" />
+                            <circle cx="82" cy="48" r="4" fill="#fbcfe8" />
+                            <path d="M 82,48 L 82,38" stroke="#fbcfe8" stroke-width="3" stroke-linecap="round" />
+                        </g>
+
+                        <g class="head-group" id="headGroup">
+                            <circle cx="50" cy="48" r="23" fill="#fbcfe8" />
+                            
+                            <path d="M 22,48 Q 25,20 50,20 Q 75,20 78,48 Q 68,32 50,34 Q 32,32 22,48 Z" fill="#1e40af" />
+                            <path d="M 22,48 Q 20,62 28,68 Q 30,55 30,48 Z" fill="#1d4ed8" />
+                            <path d="M 78,48 Q 80,62 72,68 Q 70,55 70,48 Z" fill="#1d4ed8" />
+
+                            <g transform="translate(30,28) scale(0.6)">
+                                <circle cx="0" cy="0" r="3" fill="#facc15" />
+                                <ellipse cx="-5" cy="-3" rx="4" ry="1.5" fill="#fef08a" transform="rotate(-20)" />
+                                <ellipse cx="5" cy="-3" rx="4" ry="1.5" fill="#fef08a" transform="rotate(20)" />
+                                <ellipse cx="-5" cy="3" rx="4" ry="1.5" fill="#fef08a" transform="rotate(20)" />
+                                <ellipse cx="5" cy="3" rx="4" ry="1.5" fill="#fef08a" transform="rotate(-20)" />
+                            </g>
+                            
+                            <g id="buttonEyes">
+                                <circle cx="39" cy="47" r="5" fill="#0f172a" />
+                                <circle cx="39" cy="47" r="3.8" fill="#1e293b" />
+                                <circle cx="38" cy="46" r="0.8" fill="#ffffff" />
+                                <circle cx="40" cy="48" r="0.8" fill="#ffffff" />
+                                <path d="M 37.5,45.5 L 40.5,48.5 M 40.5,45.5 L 37.5,48.5" stroke="#94a3b8" stroke-width="0.8" />
+
+                                <circle cx="61" cy="47" r="5" fill="#0f172a" />
+                                <circle cx="61" cy="47" r="3.8" fill="#1e293b" />
+                                <circle cx="60" cy="46" r="0.8" fill="#ffffff" />
+                                <circle cx="62" cy="48" r="0.8" fill="#ffffff" />
+                                <path d="M 59.5,45.5 L 62.5,48.5 M 62.5,45.5 L 59.5,48.5" stroke="#94a3b8" stroke-width="0.8" />
+                            </g>
+                            
+                            <circle cx="33" cy="53" r="0.7" fill="#b45309" />
+                            <circle cx="36" cy="54" r="0.7" fill="#b45309" />
+                            <circle cx="38" cy="53" r="0.7" fill="#b45309" />
+                            <circle cx="62" cy="53" r="0.7" fill="#b45309" />
+                            <circle cx="64" cy="54" r="0.7" fill="#b45309" />
+                            <circle cx="67" cy="53" r="0.7" fill="#b45309" />
+
+                            <circle cx="35" cy="52" r="3" fill="#f43f5e" opacity="0.3" />
+                            <circle cx="65" cy="52" r="3" fill="#f43f5e" opacity="0.3" />
+                            
+                            <path d="M 45,56 Q 50,60 55,56" stroke="#0f172a" stroke-width="2" fill="none" stroke-linecap="round" id="mouth" />
+                        </g>
+                    </svg>
+                </div>
+
+                <div class="btn-container">
+                    <button class="btn-action btn-sim" id="btnSim" onclick="respostaSim()">¡SÍ! 🎉</button>
+                    <button class="btn-action btn-nao" id="btnNao" onclick="clicouNao()">NO</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- GALERIA DE FOTOS POLAROID -->
+        <section class="photo-card">
+            <div class="polaroid-gallery">
+                <div class="polaroid polaroid-left">
+                    <img src="IMG-20260727-WA0020.jpg" alt="Foto especial 1">
+                </div>
+                <div class="polaroid polaroid-right">
+                    <img src="foto2.jpg" alt="Foto especial 2">
+                </div>
+            </div>
+            <p>¡Qué increíble ver todo lo que has crecido y en la gran gran amiga en la que te has convertido! Que esta amistad siga por muchísimos años más. ✨</p>
+        </section>
+
+        <!-- BOTÃO DE VÍDEO -->
+        <section class="video-section">
+            <a href="https://www.instagram.com/reel/DbOpWbKi3Ri/?igsh=MXhlOG81eGs0aWlyMw==" target="_blank" rel="noopener noreferrer" class="btn-video">
+                🎥 Mira este video ✨
+            </a>
+        </section>
+
+        <!-- SPOTIFY -->
+        <section class="spotify-section">
+            <div class="spotify-card">
+                <iframe src="https://open.spotify.com/embed/playlist/2u7hAgL7NegOZq3F2k0Ehm?utm_source=generator&theme=0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+            </div>
+        </section>
+    </div>
+
+    <!-- FOOTER COM O EASTER EGG -->
+    <footer>
+        <p>A través de la pequeña puerta y más allá de las estrellas... <span class="easter-key" onclick="clickEasterKey()">🗝️</span> 🧵 ✨</p>
+    </footer>
+
+    <!-- MODAL DO EASTER EGG -->
+    <div class="easter-modal" id="easterModal">
+        <div class="easter-card">
+            <h3>¡Encontraste la clave secreta! 🗝️✨</h3>
+            <p>Aprovechando que abriste la puerta oculta... tengo una pregunta seria (pero con curiosidad) para ti:</p>
+            <p><strong>¿Tú crees que un hombre y una mujer pueden ser amigos de verdad, o siempre hay algo más de por medio? Me lo dices tú... 🧐</strong></p>
+            <p style="font-size: 0.85rem; color: #94a3b8; font-style: italic;">(Ya que siempre te lo pregunto y nunca me respondes con certeza, ¡hoy te toca responder! 😂)</p>
+            <button class="btn-easter-send" onclick="responderEasterEgg()">Responder al WhatsApp 📱</button>
+        </div>
+    </div>
+
+    <script>
+        let escalaSim = 1;
+        let paddingVertical = 12;
+        let paddingHorizontal = 28;
+        let tamanhoFonte = 1;
+
+        const frasesNao = [
+            "NO",
+            "¿Segura? 😜",
+            "¡Piénsalo bien! ✨",
+            "¡Mira el botón SÍ! 🔥",
+            "¡No hay otra opción! 🎉"
+        ];
+        let indiceFrase = 0;
+
+        function clicouNao() {
+            const btnSim = document.getElementById("btnSim");
+            const btnNao = document.getElementById("btnNao");
+            const character = document.getElementById("character");
+            const mouth = document.getElementById("mouth");
+
+            escalaSim += 0.35;
+            paddingVertical += 5;
+            paddingHorizontal += 10;
+            tamanhoFonte += 0.25;
+
+            btnSim.style.transform = `scale(${escalaSim})`;
+            btnSim.style.padding = `${paddingVertical}px ${paddingHorizontal}px`;
+            btnSim.style.fontSize = `${tamanhoFonte}rem`;
+
+            indiceFrase = (indiceFrase + 1) % frasesNao.length;
+            btnNao.textContent = frasesNao[indiceFrase];
+
+            character.classList.remove("waving-no");
+            void character.offsetWidth;
+            character.classList.add("waving-no");
+
+            mouth.setAttribute("d", "M 46,58 Q 50,54 54,58");
+
+            setTimeout(() => {
+                mouth.setAttribute("d", "M 45,56 Q 50,60 55,56");
+            }, 800);
+        }
+
+        function verificarSenha() {
+            const input = document.getElementById("passInput").value;
+            const error = document.getElementById("errorMsg");
+            const container = document.getElementById("doorContainer");
+            const lockScreen = document.getElementById("lock-screen");
+
+            if (input === "0423") {
+                error.textContent = "";
+                container.classList.add("door-open");
+
+                const audio = document.getElementById("musicaFundo");
+                if (audio) {
+                    audio.volume = 0.5;
+                    audio.play().catch(e => console.log("Áudio aguardando interação"));
+                }
+
+                setTimeout(() => {
+                    lockScreen.style.opacity = "0";
+                    lockScreen.style.visibility = "hidden";
+                    setTimeout(typeEffect, 300);
+                }, 1800);
+            } else {
+                error.textContent = "Clave incorrecta. ¡La llave no encaja! 🗝️❌";
+                document.getElementById("passInput").value = "";
+            }
+        }
+
+        function esqueciSenha() {
+            const meuNumero = "5592994205721";
+            const mensagem = encodeURIComponent("¡Se me olvidó la clave de la puerta secreta! 🗝️ ¿Me das una pista?");
+            window.open(`https://wa.me/${meuNumero}?text=${mensagem}`, '_blank');
+        }
+
+        document.getElementById("passInput").addEventListener("keypress", function(e) {
+            if (e.key === 'Enter') verificarSenha();
+        });
+
+        const textToType = "Detrás de la puerta secreta, un detalle especial para ti... 🗝️✨";
+        const typewriterElement = document.getElementById("typewriter");
+        let charIndex = 0;
+
+        function typeEffect() {
+            if (charIndex < textToType.length) {
+                typewriterElement.textContent += textToType.charAt(charIndex);
+                charIndex++;
+                setTimeout(typeEffect, 50);
+            }
+        }
+
+        function respostaSim() {
+            confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            setTimeout(() => {
+                const meuNumero = "5592994205721";
+                const mensagem = encodeURIComponent("¡SÍ! Acepto la invitación para celebrar hoy... 🗝️🎉");
+                window.location.href = `https://wa.me/${meuNumero}?text=${mensagem}`;
+            }, 2500);
+        }
+
+        /* LÓGICA DO EASTER EGG (3 CLIQUES NA CHAVE DO FOOTER) */
+        let keyClicks = 0;
+        function clickEasterKey() {
+            keyClicks++;
+            if (keyClicks === 3) {
+                document.getElementById("easterModal").style.display = "flex";
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.9 } });
+                keyClicks = 0;
+            }
+        }
+
+        function responderEasterEgg() {
+            const meuNumero = "5592994205721";
+            const mensagem = encodeURIComponent("¡Encontré la clave secreta! 🗝️ Sobre tu pregunta de si el hombre y la mujer pueden ser amigos... aquí va mi respuesta: ");
+            window.location.href = `https://wa.me/${meuNumero}?text=${mensagem}`;
+        }
+
+        // CANVAS ANIMATION
+        const canvas = document.getElementById("bg-canvas");
+        const ctx = canvas.getContext("2d");
+        let width, height;
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        class Star {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.size = Math.random() * 1.2 + 0.4;
+                this.alpha = Math.random();
+                this.speed = Math.random() * 0.015 + 0.005;
+                this.increasing = Math.random() > 0.5;
+            }
+            update() {
+                if (this.increasing) {
+                    this.alpha += this.speed;
+                    if (this.alpha >= 1) this.increasing = false;
+                } else {
+                    this.alpha -= this.speed;
+                    if (this.alpha <= 0.15) this.increasing = true;
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        const stars = Array.from({ length: 40 }, () => new Star());
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            stars.forEach(s => { s.update(); s.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
+
